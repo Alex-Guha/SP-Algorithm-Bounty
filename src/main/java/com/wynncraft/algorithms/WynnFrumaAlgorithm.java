@@ -13,7 +13,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-@Information(name = "Wynncraft Fruma", authors = "Wynncraft")
+@Information(name = "Wynncraft Fruma", version = 1, authors = "Wynncraft")
 public class WynnFrumaAlgorithm implements IAlgorithm<WynnPlayer> {
 
     private static final SkillPoint[] SKILL_POINTS = SkillPoint.values();

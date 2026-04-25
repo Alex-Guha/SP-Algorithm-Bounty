@@ -12,6 +12,11 @@ public @interface Information {
     String name();
 
     /**
+     * @return the algorithm version
+     */
+    int version();
+
+    /**
      * @return the algorithm authors
      */
     String[] authors();

@@ -60,7 +60,7 @@ public class AlgorithmRegistry {
          * @return the name of the algorithm
          */
         public String name() {
-            return information.name();
+            return information.name() + " V" + information.version();
         }
 
         /**
