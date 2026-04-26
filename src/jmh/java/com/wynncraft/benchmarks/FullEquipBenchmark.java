@@ -15,7 +15,7 @@ import java.util.concurrent.TimeUnit;
 @Measurement(iterations = 5, time = 100, timeUnit = TimeUnit.MILLISECONDS)
 @Fork(1)
 @State(Scope.Thread)
-public class EquipBenchmark {
+public class FullEquipBenchmark {
 
     @Param("__ignore__")
     public String algorithm;
@@ -56,7 +56,7 @@ public class EquipBenchmark {
     }
 
     @Benchmark
-    public void bench(Blackhole blackhole) {
+    public void full_equip(Blackhole blackhole) {
         IAlgorithm.Result result = _algorithm.run(_player);
         blackhole.consume(result);
     }
