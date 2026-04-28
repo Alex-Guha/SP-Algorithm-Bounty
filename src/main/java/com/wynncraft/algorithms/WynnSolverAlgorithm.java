@@ -138,14 +138,16 @@ public class WynnSolverAlgorithm implements IAlgorithm<WynnPlayer> {
             int[] bonuses = items[i].bonuses();
             applyBonuses(sp, bonuses);
 
-            // Cascade validity check: all previously activated items must
-            // remain valid after this item's bonuses are applied.
-            // This is the core cascade constraint from the JS algorithm.
+            // Cascade validity check: every previously activated item must
+            // still meet its requirements after subtracting its own bonus
+            // from the current SP state. This is the exclude-self cascade
+            // rule — bootstrapping (an item's own bonus crossing the req
+            // threshold) is not allowed.
             boolean valid = true;
             for (int j = 0; j < items.length; j++) {
                 if (!activated[j])
                     continue;
-                if (!meetsReqs(sp, items[j].requirements())) {
+                if (!isValidExcludingSelf(sp, items[j].requirements(), items[j].bonuses())) {
                     valid = false;
                     break;
                 }
@@ -170,6 +172,13 @@ public class WynnSolverAlgorithm implements IAlgorithm<WynnPlayer> {
     private static boolean meetsReqs(int[] sp, int[] reqs) {
         for (int s = 0; s < 5; s++) {
             if (reqs[s] > 0 && sp[s] < reqs[s]) return false;
+        }
+        return true;
+    }
+
+    private static boolean isValidExcludingSelf(int[] sp, int[] reqs, int[] bonuses) {
+        for (int s = 0; s < 5; s++) {
+            if (reqs[s] > 0 && reqs[s] + bonuses[s] > sp[s]) return false;
         }
         return true;
     }

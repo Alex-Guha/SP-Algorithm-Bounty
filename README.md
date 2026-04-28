@@ -40,29 +40,27 @@ This repository provides a base structure similar to our real usage, including t
 
 ### Implementing `IAlgorithm`
 
-`IAlgorithm` has two optional hooks beyond `run()` — `clearCache()` and `mutatesEquipment()`. They look harmless but are load-bearing for benchmarking and correctness. If your algorithm uses cross-call caching or mutates inputs, you **must** declare it.
+Beyond `run()`, two optional hooks are load-bearing for benchmarking and correctness:
 
 #### `clearCache()`
 
-Override this if your algorithm holds any state across `run()` calls — memoization tables, mask caches, last-seen-player references, anything. Benchmarks invoke `clearCache()` to establish a cold baseline, and tests rely on it to isolate cases. If your cache survives a `clearCache()` call, results will be inconsistent and you may pass tests only because of stale state from a previous case.
+Override if your algorithm holds any state across `run()` calls (memoization, mask caches, last-seen-player refs). Benchmarks call it to establish a cold baseline — per-invocation in `FullEquipBenchmark` / `OneByOneBenchmark`, once per trial in `ServerSimBenchmark`.
 
-- Reset every field your algorithm reads on a subsequent `run()`.
-- It must be safe to call at any time, including before the first `run()`.
-- Pure / stateless algorithms can leave the default no-op.
+`AlgorithmRegistry` holds one instance per algorithm, reused across all tests and benchmarks. Tests do **not** call `clearCache()` between cases, so your cache must self-invalidate when the equipment array or assigned SP change — otherwise stale state can mask correctness bugs. Implementations must be safe to call before the first `run()`. Pure algorithms can leave the default no-op.
 
 #### `mutatesEquipment()`
 
-Return `true` if `run()` writes to anything reachable from the equipment array — `IEquipment` instances, their `requirements()`/`bonuses()` arrays, or the array itself. Benchmarks check this flag and deep-clone the input array per call so your mutations can't leak across invocations. If you mutate but return `false`, you will corrupt later iterations and other algorithms in the same run.
+Return `true` if `run()` writes to anything reachable from the equipment array (`IEquipment` instances, their `requirements()`/`bonuses()` arrays, or the array itself). Benchmarks deep-clone the input per call when this is `true`. Mutating while returning `false` corrupts later iterations and other algorithms in the same run.
 
-There is one inviolable rule that `mutatesEquipment` does **not** protect you from: never write to a real `Equipment` enum's `requirements()` or `bonuses()` arrays. Those are JVM-global singletons shared by every algorithm and every test case; the benchmark's deep-clone only freshens `SyntheticEquipment` instances and passes enum singletons through by reference. If you need scratch space, allocate your own arrays.
+**Inviolable rule** (not covered by `mutatesEquipment`): never write to a real `Equipment` enum's `requirements()`/`bonuses()` arrays. They are JVM-global singletons; the deep-clone only freshens `SyntheticEquipment` and passes enum singletons by reference. Allocate your own scratch arrays.
 
 #### Quick checklist
 
-| Your algorithm… | Override `clearCache()`? | Override `mutatesEquipment()` to `true`? |
+| Your algorithm… | `clearCache()` | `mutatesEquipment()` → `true` |
 |---|---|---|
-| Pure, no state across calls | No | No |
+| Pure, stateless | No | No |
 | Caches results / masks / sorted views | **Yes** | No |
-| Mutates the input equipment array or `SyntheticEquipment` fields | No | **Yes** |
+| Mutates input equipment or `SyntheticEquipment` fields | No | **Yes** |
 | Both | **Yes** | **Yes** |
 
 ## 🧪 Combinatory Test Cases
@@ -109,13 +107,12 @@ Tag-based selection (`@Tag` on each test class):
 ### Benchmark structure
 
 JMH lives in `src/jmh/java/com/wynncraft/`:
-- `JMHEntry` — main entry; holds `BUILD_REGISTRY: Map<String, BuildSpec>`. Registers hand-written builds (the 6 sugo-thread cases) and auto-registers all `SyntheticCases.ALL` entries by name.
-- `benchmarks/BuildSpec` — record of `(IEquipment[] equipment, int[] assignedSkillpoints)`. Benchmarks needing only to materialize a player call `spec.apply(builder)`; benchmarks manipulating items or SP individually read the fields directly.
+- `JMHEntry` — holds `BUILD_REGISTRY: Map<String, BuildSpec>`. Registers six canonical builds (two sanity + four archetypes from Sugo's forum thread) and auto-registers every `SyntheticCases.ALL` entry.
+- `benchmarks/BuildSpec` — `(IEquipment[] equipment, int[] assignedSkillpoints)`. Use `spec.apply(builder)` to materialize, or read fields directly when manipulating items/SP individually.
 - `benchmarks/BenchOps` — shared helpers (equip permutations, SP increments, sequence runners).
 - `benchmarks/FullEquipBenchmark` — single full-build `run()` per invocation.
 - `benchmarks/OneByOneBenchmark` — single-item incremental equip.
-- `benchmarks/ServerSimBenchmark` — primary mixed workload: 10 equip sequences (8 perms each) + 10 SP-change sequences + 4000 weapon swaps. Builds drawn from the 9 full-build synthetic cases via seeded RNG.
-  - ServerSim is the most representative benchmark for performance (as of writing this). - For full evaluation, run it with more time per measurement to allow for fair JIT compilation.
+- `benchmarks/ServerSimBenchmark` — primary mixed workload: 10 equip sequences (8 perms each) + 10 SP-change sequences + 4000 weapon swaps, drawn from the 9 full-build synthetic cases via seeded RNG. The most representative perf benchmark; raise per-measurement time for serious evaluation so the JIT can settle.
 
 ```bash
 ./gradlew jmh                                                  # all benchmarks, all algorithms
