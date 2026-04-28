@@ -94,12 +94,14 @@ public final class BenchOps {
                                         Supplier<IPlayerBuilder> builderSupplier,
                                         IEquipment[][][] permSteps,
                                         int[] assignedSP,
+                                        boolean needsClone,
                                         boolean clearCache,
                                         Blackhole bh) {
         for (IEquipment[][] steps : permSteps) {
             if (clearCache) algorithm.clearCache();
             for (IEquipment[] stepItems : steps) {
-                check(algorithm, builderSupplier, stepItems, assignedSP, bh);
+                IEquipment[] items = needsClone ? deepClone(stepItems) : stepItems;
+                check(algorithm, builderSupplier, items, assignedSP, bh);
             }
         }
     }
@@ -135,11 +137,13 @@ public final class BenchOps {
                                    Supplier<IPlayerBuilder> builderSupplier,
                                    IEquipment[] items,
                                    int[][] spSteps,
+                                   boolean needsClone,
                                    boolean clearCache,
                                    Blackhole bh) {
         if (clearCache) algorithm.clearCache();
         for (int[] sp : spSteps) {
-            check(algorithm, builderSupplier, deepClone(items), sp, bh);
+            IEquipment[] runItems = needsClone ? deepClone(items) : items;
+            check(algorithm, builderSupplier, runItems, sp, bh);
         }
     }
 
@@ -150,9 +154,11 @@ public final class BenchOps {
                                      Supplier<IPlayerBuilder> builderSupplier,
                                      IEquipment[] items,
                                      int[] assignedSP,
+                                     boolean needsClone,
                                      boolean clearCache,
                                      Blackhole bh) {
         if (clearCache) algorithm.clearCache();
-        check(algorithm, builderSupplier, deepClone(items), assignedSP, bh);
+        IEquipment[] runItems = needsClone ? deepClone(items) : items;
+        check(algorithm, builderSupplier, runItems, assignedSP, bh);
     }
 }

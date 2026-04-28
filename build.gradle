@@ -58,6 +58,11 @@ test {
     if (project.hasProperty('algo')) {
         systemProperty 'algorithm', project.property('algo')
     }
+
+    // Surface the per-algorithm PASS/FAIL summary printed by SummaryTable.close().
+    testLogging {
+        showStandardStreams = true
+    }
 }
 
 tasks.register('jmh', JavaExec) {

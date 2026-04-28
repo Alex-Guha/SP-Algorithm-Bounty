@@ -16,19 +16,25 @@ import java.util.function.Supplier;
 
 /**
  * Server-side load simulator. Per benchmark invocation:
- *   • {@value NUM_EQUIP_SEQUENCES} equip sequences
- *     (each = {@value NUM_PERMUTATIONS} seeded permutations, items added one-by-one)
- *   • {@value NUM_SP_CHANGES} SP-change sequences (1 SP at a time, zero → full allocation)
- *   • {@value NUM_WEAPON_SWAPS} weapon swaps (single full-build {@code run()} per swap)
+ * • {@value NUM_EQUIP_SEQUENCES} equip sequences
+ * (each = {@value NUM_PERMUTATIONS} seeded permutations, items added
+ * one-by-one)
+ * • {@value NUM_SP_CHANGES} SP-change sequences (1 SP at a time, zero → full
+ * allocation)
+ * • {@value NUM_WEAPON_SWAPS} weapon swaps (single full-build {@code run()} per
+ * swap)
  *
- * Builds are picked from {@link JMHEntry#SYNTHETIC_FULL_BUILD_IDS} via seeded RNG
- * ({@code BASE_SEED ^ runIndex}) so runs are deterministic. {@code clearCache()} is
- * called once at trial start; the cache then persists across the whole simulation.
+ * Builds are picked from {@link JMHEntry#SYNTHETIC_FULL_BUILD_IDS} via seeded
+ * RNG
+ * ({@code BASE_SEED ^ runIndex}) so runs are deterministic.
+ * {@code clearCache()} is
+ * called once at trial start; the cache then persists across the whole
+ * simulation.
  */
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
-@Warmup(iterations = 1, time = 2, timeUnit = TimeUnit.SECONDS)
-@Measurement(iterations = 5, time = 2, timeUnit = TimeUnit.SECONDS)
+@Warmup(iterations = 1, time = 200, timeUnit = TimeUnit.MILLISECONDS)
+@Measurement(iterations = 3, time = 200, timeUnit = TimeUnit.MILLISECONDS)
 @Fork(1)
 @State(Scope.Thread)
 public class ServerSimBenchmark {
@@ -47,6 +53,7 @@ public class ServerSimBenchmark {
 
     private IAlgorithm<?> _algorithm;
     private Supplier<IPlayerBuilder> _builderSupplier;
+    private boolean _needsClone;
 
     private IEquipment[][][][] equipPermSteps;
     private int[][] equipAssignedSP;
@@ -60,13 +67,14 @@ public class ServerSimBenchmark {
     @Setup(Level.Trial)
     public void prepare() {
         AlgorithmRegistry.Entry entry = AlgorithmRegistry.registry()
-            .stream()
-            .filter(e -> e.name().equals(algorithm))
-            .findFirst()
-            .orElseThrow(() -> new IllegalArgumentException("Unknown algorithm: " + algorithm));
+                .stream()
+                .filter(e -> e.name().equals(algorithm))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Unknown algorithm: " + algorithm));
 
         _algorithm = entry.algorithm();
         _builderSupplier = entry::builder;
+        _needsClone = _algorithm.mutatesEquipment();
 
         List<String> pool = new ArrayList<>(JMHEntry.SYNTHETIC_FULL_BUILD_IDS);
         Random rng = new Random(BASE_SEED ^ runIndex);
@@ -102,15 +110,15 @@ public class ServerSimBenchmark {
 
         for (int i = 0; i < NUM_EQUIP_SEQUENCES; i++) {
             BenchOps.runEquipSequence(_algorithm, _builderSupplier, equipPermSteps[i],
-                equipAssignedSP[i], false, bh);
+                    equipAssignedSP[i], _needsClone, false, bh);
         }
         for (int i = 0; i < NUM_SP_CHANGES; i++) {
             BenchOps.runSpChange(_algorithm, _builderSupplier, spChangeItems[i],
-                spChangeSteps[i], false, bh);
+                    spChangeSteps[i], _needsClone, false, bh);
         }
         for (int i = 0; i < NUM_WEAPON_SWAPS; i++) {
             BenchOps.runWeaponSwap(_algorithm, _builderSupplier, swapItems[i],
-                swapAssignedSP[i], false, bh);
+                    swapAssignedSP[i], _needsClone, false, bh);
         }
     }
 }

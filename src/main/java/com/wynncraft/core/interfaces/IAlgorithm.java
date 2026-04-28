@@ -25,6 +25,14 @@ public interface IAlgorithm<T extends IPlayer> {
     default void clearCache() { }
 
     /**
+     * Whether {@link #run(IPlayer)} mutates the equipment array passed in via
+     * the player. Algorithms that modify shared equipment state must return
+     * true so benchmarks defensively clone inputs across calls; pure algorithms
+     * leave the default {@code false} and benefit from input-identity caching.
+     */
+    default boolean mutatesEquipment() { return false; }
+
+    /**
      * Holds the final combinatory result of the algorithm
      *
      * @param valid the equipment that should be marked as valid

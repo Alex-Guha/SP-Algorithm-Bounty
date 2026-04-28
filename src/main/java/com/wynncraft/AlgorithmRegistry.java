@@ -48,6 +48,9 @@ public class AlgorithmRegistry {
         register(new NegativeOrderAlgorithm(), WynnPlayer.Builder::new);
         register(new PrunedMaskAlgorithm(), WynnPlayer.Builder::new);
         register(new PrunedMaskV2Algorithm(), WynnPlayer.Builder::new);
+        // OptimizedDFSAlgorithm (com.wynncraft.algorithms.OptimizedDFSAlgorithm)
+        // is intentionally not registered, mirroring WynnSkillpointBench where
+        // OptimizedDFS is absent from its registry.
     }
 
     /**
