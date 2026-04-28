@@ -14,7 +14,6 @@ import com.wynncraft.algorithms.SCCGraphAlgorithm;
 import com.wynncraft.algorithms.TheCuteCatAlgo;
 import com.wynncraft.algorithms.TheFourthAlgorithm;
 import com.wynncraft.algorithms.TheThirdAlgorithm;
-import com.wynncraft.algorithms.WynnAlgorithm;
 import com.wynncraft.algorithms.WynnFrumaAlgorithm;
 import com.wynncraft.algorithms.WynnSolverAlgorithm;
 import com.wynncraft.core.WynnPlayer;
@@ -33,7 +32,7 @@ public class AlgorithmRegistry {
         // Register here your algorithm here and your custom player if necessary!
         // Make sure your algorithm contains the @Information annotation
         // New additions always goes on the bottom for reference
-        register(new WynnAlgorithm(), WynnPlayer.Builder::new);
+        register(new WynnFrumaAlgorithm(), WynnPlayer.Builder::new);
         register(new SCCGraphAlgorithm(), WynnPlayer.Builder::new);
         register(new WynnSolverAlgorithm(), WynnPlayer.Builder::new);
         register(new CascadeBoundChecker(), WynnPlayer.Builder::new);
