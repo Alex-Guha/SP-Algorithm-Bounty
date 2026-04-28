@@ -14,6 +14,11 @@ import com.wynncraft.algorithms.SCCGraphAlgorithm;
 import com.wynncraft.algorithms.TheCuteCatAlgo;
 import com.wynncraft.algorithms.TheFourthAlgorithm;
 import com.wynncraft.algorithms.TheThirdAlgorithm;
+import com.wynncraft.algorithms.SubtractiveBnBAlgorithm;
+import com.wynncraft.algorithms.PrunedMaskAlgorithm;
+import com.wynncraft.algorithms.PrunedMaskV2Algorithm;
+import com.wynncraft.algorithms.StarvingGoblinAlgorithm;
+import com.wynncraft.algorithms.StarvingPlayer;
 import com.wynncraft.algorithms.WynnFrumaAlgorithm;
 import com.wynncraft.algorithms.WynnSolverAlgorithm;
 import com.wynncraft.core.WynnPlayer;
@@ -32,6 +37,9 @@ public class AlgorithmRegistry {
         // Register here your algorithm here and your custom player if necessary!
         // Make sure your algorithm contains the @Information annotation
         // New additions always goes on the bottom for reference
+        //register(new WynnFrumaAlgorithm(), WynnPlayer.Builder::new);
+        //register(new CapyTopoAlgorithm(), WynnPlayer.Builder::new);
+        register(new SubtractiveBnBAlgorithm(), WynnPlayer.Builder::new);
         register(new WynnFrumaAlgorithm(), WynnPlayer.Builder::new);
         register(new SCCGraphAlgorithm(), WynnPlayer.Builder::new);
         register(new WynnSolverAlgorithm(), WynnPlayer.Builder::new);
@@ -47,9 +55,7 @@ public class AlgorithmRegistry {
         register(new NegativeOrderAlgorithm(), WynnPlayer.Builder::new);
         register(new PrunedMaskAlgorithm(), WynnPlayer.Builder::new);
         register(new PrunedMaskV2Algorithm(), WynnPlayer.Builder::new);
-        // OptimizedDFSAlgorithm (com.wynncraft.algorithms.OptimizedDFSAlgorithm)
-        // is intentionally not registered, mirroring WynnSkillpointBench where
-        // OptimizedDFS is absent from its registry.
+        register(new StarvingGoblinAlgorithm(), StarvingPlayer.Builder::new);
     }
 
     /**
