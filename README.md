@@ -57,3 +57,51 @@ or to execute a specific algorithm only
 ```bash
 ./gradlew test -Palgorithm='Your Algorithm Name'
 ```
+
+---
+
+## Local Workflow Notes
+
+### Test filtering
+
+Tag-based selection (`@Tag` on each test class):
+
+| Class | Tag | Cases |
+|---|---|---|
+| `CombinationTests` | `upstream` | Hand-written upstream baseline |
+| `SyntheticCombinationTests` | `curated` | Synthetic curated cases (`SyntheticEquipment`) |
+| `GeneratedCombinationTests` | `generated` | Auto-generated cases |
+
+```bash
+./gradlew test -Pcases=upstream                 # one tag
+./gradlew test -Pcases=curated,generated        # multiple tags
+./gradlew test -Palgo='WynnSolver V1'           # algorithm filter (alias for -Palgorithm=)
+./gradlew test -Palgo='WynnSolver V1' -Pcases=curated
+```
+
+### Benchmark structure
+
+JMH lives in `src/jmh/java/com/wynncraft/`:
+- `JMHEntry` — main entry; holds `BUILD_REGISTRY: Map<String, BuildSpec>`. Registers hand-written builds (the 6 sugo-thread cases) and auto-registers all `SyntheticCases.ALL` entries by name.
+- `benchmarks/BuildSpec` — record of `(IEquipment[] equipment, int[] assignedSkillpoints)`. Benchmarks needing only to materialize a player call `spec.apply(builder)`; benchmarks manipulating items or SP individually read the fields directly.
+- `benchmarks/BenchOps` — shared helpers (equip permutations, SP increments, sequence runners).
+- `benchmarks/FullEquipBenchmark` — single full-build `run()` per invocation.
+- `benchmarks/OneByOneBenchmark` — single-item incremental equip.
+- `benchmarks/ServerSimBenchmark` — primary mixed workload: 10 equip sequences (8 perms each) + 10 SP-change sequences + 4000 weapon swaps. Builds drawn from the 9 full-build synthetic cases via seeded RNG.
+
+```bash
+./gradlew jmh                                                  # all benchmarks, all algorithms
+./gradlew jmh -Pbm=ServerSimBenchmark                          # one benchmark class (regex match)
+./gradlew jmh -Palgo='WynnSolver V1'                           # one algorithm
+./gradlew jmh -Palgo='WynnSolver V1,Pruned Mask V2'            # multiple algorithms
+./gradlew jmh -Pbm=ServerSimBenchmark -Palgo='WynnSolver V1'   # combine
+./gradlew jmh -PjmhArgs="-i 1 -wi 1 -f 1"                      # raw JMH CLI passthrough
+```
+
+Adding a new build:
+```java
+JMHEntry.register("my_build", new BuildSpec(
+    new IEquipment[] { /* items */ },
+    new int[] { str, dex, int_, def, agi }
+));
+```
