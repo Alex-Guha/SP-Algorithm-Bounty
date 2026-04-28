@@ -23,7 +23,16 @@ public final class BenchOps {
 
     private BenchOps() { }
 
-    private static IEquipment[] deepClone(IEquipment[] items) {
+    /**
+     * Deep-clones an equipment array so algorithms with
+     * {@link IAlgorithm#mutatesEquipment()} {@code == true} can't leak state
+     * across calls. {@link com.wynncraft.core.SyntheticEquipment} instances are
+     * cloned (fresh requirements/bonuses arrays); real {@code Equipment} enum
+     * singletons are pass-through, so algorithms must NOT write to enum-backed
+     * {@code requirements()}/{@code bonuses()} arrays — doing so would corrupt
+     * shared global state regardless of {@code mutatesEquipment}.
+     */
+    static IEquipment[] deepClone(IEquipment[] items) {
         IEquipment[] out = new IEquipment[items.length];
         for (int i = 0; i < items.length; i++) {
             IEquipment src = items[i];

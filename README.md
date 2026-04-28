@@ -38,6 +38,33 @@ This repository provides a base structure similar to our real usage, including t
   - Make sure the new version is in a separate class and registered again, even if it is only a one-line change.
 - You may submit multiple algorithms as you see fit. We will choose the best one for our usage case.
 
+### Implementing `IAlgorithm`
+
+`IAlgorithm` has two optional hooks beyond `run()` — `clearCache()` and `mutatesEquipment()`. They look harmless but are load-bearing for benchmarking and correctness. If your algorithm uses cross-call caching or mutates inputs, you **must** declare it.
+
+#### `clearCache()`
+
+Override this if your algorithm holds any state across `run()` calls — memoization tables, mask caches, last-seen-player references, anything. Benchmarks invoke `clearCache()` to establish a cold baseline, and tests rely on it to isolate cases. If your cache survives a `clearCache()` call, results will be inconsistent and you may pass tests only because of stale state from a previous case.
+
+- Reset every field your algorithm reads on a subsequent `run()`.
+- It must be safe to call at any time, including before the first `run()`.
+- Pure / stateless algorithms can leave the default no-op.
+
+#### `mutatesEquipment()`
+
+Return `true` if `run()` writes to anything reachable from the equipment array — `IEquipment` instances, their `requirements()`/`bonuses()` arrays, or the array itself. Benchmarks check this flag and deep-clone the input array per call so your mutations can't leak across invocations. If you mutate but return `false`, you will corrupt later iterations and other algorithms in the same run.
+
+There is one inviolable rule that `mutatesEquipment` does **not** protect you from: never write to a real `Equipment` enum's `requirements()` or `bonuses()` arrays. Those are JVM-global singletons shared by every algorithm and every test case; the benchmark's deep-clone only freshens `SyntheticEquipment` instances and passes enum singletons through by reference. If you need scratch space, allocate your own arrays.
+
+#### Quick checklist
+
+| Your algorithm… | Override `clearCache()`? | Override `mutatesEquipment()` to `true`? |
+|---|---|---|
+| Pure, no state across calls | No | No |
+| Caches results / masks / sorted views | **Yes** | No |
+| Mutates the input equipment array or `SyntheticEquipment` fields | No | **Yes** |
+| Both | **Yes** | **Yes** |
+
 ## 🧪 Combinatory Test Cases
 This repository contains a few combinatory test cases for equipment.
 🏆 We are also offering rewards for newly introduced test cases that break current algorithms.
@@ -88,6 +115,7 @@ JMH lives in `src/jmh/java/com/wynncraft/`:
 - `benchmarks/FullEquipBenchmark` — single full-build `run()` per invocation.
 - `benchmarks/OneByOneBenchmark` — single-item incremental equip.
 - `benchmarks/ServerSimBenchmark` — primary mixed workload: 10 equip sequences (8 perms each) + 10 SP-change sequences + 4000 weapon swaps. Builds drawn from the 9 full-build synthetic cases via seeded RNG.
+  - ServerSim is the most representative benchmark for performance (as of writing this). - For full evaluation, run it with more time per measurement to allow for fair JIT compilation.
 
 ```bash
 ./gradlew jmh                                                  # all benchmarks, all algorithms
