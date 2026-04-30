@@ -25,21 +25,6 @@ public interface IAlgorithm<T extends IPlayer> {
     default void clearCache() { }
 
     /**
-     * Whether {@link #run(IPlayer)} mutates the equipment array passed in via
-     * the player. Algorithms that modify shared equipment state must return
-     * true so benchmarks defensively clone inputs across calls; pure algorithms
-     * leave the default {@code false} and benefit from input-identity caching.
-     *
-     * <p>Note: benchmark deep-cloning only freshens
-     * {@link com.wynncraft.core.SyntheticEquipment} instances; real
-     * {@code Equipment} enum singletons are passed through by reference. Even
-     * when this flag is {@code true}, an algorithm must never write to an
-     * {@code Equipment} enum's {@code requirements()}/{@code bonuses()} arrays
-     * — those are shared JVM-globally and cloning cannot protect them.
-     */
-    default boolean mutatesEquipment() { return false; }
-
-    /**
      * Holds the final combinatory result of the algorithm
      *
      * @param valid the equipment that should be marked as valid

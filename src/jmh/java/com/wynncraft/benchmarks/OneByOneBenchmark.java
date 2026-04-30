@@ -42,9 +42,8 @@ public class OneByOneBenchmark {
     @Param("__ignore__")
     public String algorithm;
 
-    private IAlgorithm<?> _algorithm;
+    private IAlgorithm _algorithm;
     private Supplier<IPlayerBuilder> _builderSupplier;
-    private boolean _needsClone;
 
     @Setup(value = Level.Trial)
     public void prepare() {
@@ -58,15 +57,8 @@ public class OneByOneBenchmark {
 
         _algorithm = entry.algorithm();
         _builderSupplier = entry::builder;
-        _needsClone = _algorithm.mutatesEquipment();
     }
 
-    private static IEquipment maybeClone(IEquipment src, boolean clone) {
-        if (!clone) return src;
-        return BenchOps.deepClone(new IEquipment[] { src })[0];
-    }
-
-    @SuppressWarnings({"rawtypes", "unchecked"})
     @Benchmark
     public void one_by_one(Blackhole blackhole) {
         // Cold cache per invocation; cache then accumulates across the 14
@@ -84,13 +76,11 @@ public class OneByOneBenchmark {
         // On this benchmark we include each equipment one by one
         // in the common order (weapon -> armour -> accessory -> tomes)
         for (int i = 0; i < TARGET_BUILD.size(); i++) {
-            IEquipment equipment = maybeClone(TARGET_BUILD.get(i), _needsClone);
-            builder.equipment(equipment);
-            blackhole.consume(((IAlgorithm) _algorithm).run(builder.build()));
+            builder.equipment(TARGET_BUILD.get(i));
+            blackhole.consume(_algorithm.run(builder.build()));
         }
     }
 
-    @SuppressWarnings({"rawtypes", "unchecked"})
     @Benchmark
     public void one_by_one_inverse(Blackhole blackhole) {
         _algorithm.clearCache();
@@ -104,10 +94,9 @@ public class OneByOneBenchmark {
 
         // On this benchmark we include each equipment one by one
         // in the inverse order (tomes -> accessories -> armour -> weapon)
-        for (int size = TARGET_BUILD.size(); size > 0; size--) {
-            IEquipment equipment = maybeClone(TARGET_BUILD.get(size - 1), _needsClone);
-            builder.equipment(equipment);
-            blackhole.consume(((IAlgorithm) _algorithm).run(builder.build()));
+        for (int i = TARGET_BUILD.size(); i > 0; i--) {
+            builder.equipment(TARGET_BUILD.get(i - 1));
+            blackhole.consume(_algorithm.run(builder.build()));
         }
     }
 

@@ -15,8 +15,8 @@ import java.util.Map;
 @Information(name = "CascadeBound", version = 1, authors = {"florishafkenscheid"})
 public class CascadeBoundChecker implements IAlgorithm<WynnPlayer> {
 
-    private static final SkillPoint[] SKILL_POINTS = SkillPoint.values();
     private static final int NUM_SKILLPOINTS = 5;
+    private static final SkillPoint[] SKILL_POINTS = SkillPoint.values();
 
     private final Map<IEquipment[], Prepared> preparedCache = new IdentityHashMap<>();
     private int[] statsStack = new int[0];

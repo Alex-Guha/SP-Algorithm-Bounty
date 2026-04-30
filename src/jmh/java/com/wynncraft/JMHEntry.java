@@ -1,14 +1,9 @@
 package com.wynncraft;
 
-import com.wynncraft.benchmarks.BuildSpec;
+import com.wynncraft.instances.BuildFactory;
 import com.wynncraft.benchmarks.FullEquipBenchmark;
 import com.wynncraft.benchmarks.OneByOneBenchmark;
-import com.wynncraft.benchmarks.ServerSimBenchmark;
-import com.wynncraft.core.SyntheticEquipment;
 import com.wynncraft.core.interfaces.IEquipment;
-import com.wynncraft.core.interfaces.IPlayer;
-import com.wynncraft.core.interfaces.IPlayerBuilder;
-import com.wynncraft.testdata.SyntheticCases;
 import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.CommandLineOptionException;
@@ -16,7 +11,6 @@ import org.openjdk.jmh.runner.options.ChainedOptionsBuilder;
 import org.openjdk.jmh.runner.options.CommandLineOptions;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
@@ -25,29 +19,13 @@ import static com.wynncraft.enums.Equipment.*;
 
 public final class JMHEntry {
 
-    /**
-     * The 9 full-build (8-item) synthetic cases — used as the workload pool by
-     * benchmarks that cycle through builds at runtime (e.g. {@link ServerSimBenchmark}).
-     */
-    public static final Set<String> SYNTHETIC_FULL_BUILD_IDS = Set.of(
-        "case8_fullBuild_8items",
-        "case9_dexIntAgiBuild",
-        "case10_intAgiHeavyMageBuild",
-        "case11_strDexDefWarriorBuild",
-        "case12_strStackingBuildWithNegativeAgi",
-        "case13_intAgiMageBuildWithMoontowersLargeNegatives",
-        "case14_strIntMeleeBuild",
-        "case16_strStackingWithCascadingBonuses",
-        "case18_multiStatAllEquip"
-    );
-
-    private static final Map<String, BuildSpec> BUILD_REGISTRY = new LinkedHashMap<>();
+    private static final Map<String, BuildFactory> BUILD_REGISTRY = new LinkedHashMap<>();
     static {
         // ── Hand-written canonical builds ────────────────────────────────
         // SP indices: STRENGTH=0, DEXTERITY=1, INTELLIGENCE=2, DEFENCE=3, AGILITY=4
 
         // Complete player build (weapon, armour, tomes); all requirements met.
-        register("complete_best_case", new BuildSpec(
+        register("complete_best_case", new BuildFactory(
             new IEquipment[] {
                 SPRING,
                 APHOTIC, TIME_RIFT, TAO,
@@ -66,7 +44,7 @@ public final class JMHEntry {
         ));
 
         // Complete player build with no SP allocated; almost nothing should pass.
-        register("complete_worst_case", new BuildSpec(
+        register("complete_worst_case", new BuildFactory(
             new IEquipment[] {
                 SPRING,
                 APHOTIC, TIME_RIFT, TAO,
@@ -85,7 +63,7 @@ public final class JMHEntry {
         ));
 
         // Builds adapted from Sugo's forum thread.
-        register("warrior_convergence", new BuildSpec(
+        register("warrior_convergence", new BuildFactory(
             new IEquipment[] {
                 CONVERGENCE,
                 CAESURA, DELIRIUM, CHAMPIONS_VALIANCE,
@@ -103,7 +81,7 @@ public final class JMHEntry {
             new int[] { 41, 57, 41, 61, 0 }
         ));
 
-        register("warrior_ascendancy", new BuildSpec(
+        register("warrior_ascendancy", new BuildFactory(
             new IEquipment[] {
                 ASCENDANCY,
                 XIUHTECUHTLI, FIDELIUS, EDEN_BLESSED_GUARDS,
@@ -121,7 +99,7 @@ public final class JMHEntry {
             new int[] { 0, 0, 65, 75, 55 }
         ));
 
-        register("shaman_resonance", new BuildSpec(
+        register("shaman_resonance", new BuildFactory(
             new IEquipment[] {
                 RESONANCE,
                 PISCES, DROWN, CHAMPIONS_VALIANCE,
@@ -139,7 +117,7 @@ public final class JMHEntry {
             new int[] { 56, 37, 46, 61, 0 }
         ));
 
-        register("assassin_vengeance", new BuildSpec(
+        register("assassin_vengeance", new BuildFactory(
             new IEquipment[] {
                 VENGEANCE,
                 OBSIDIAN_FRAMED_HELMET, TAURUS, BABEL,
@@ -156,15 +134,6 @@ public final class JMHEntry {
             },
             new int[] { 81, 65, 0, 56, 0 }
         ));
-
-        // ── Auto-registered synthetic cases ──────────────────────────────
-        // Every full-build synthetic test case is exposed under its case name
-        // so benchmarks can address it the same way as hand-written builds.
-        for (var entry : SyntheticCases.ALL.entrySet()) {
-            String id = entry.getKey();
-            SyntheticCases.TestCase tc = entry.getValue();
-            register(id, new BuildSpec(cloneEquipment(tc.items()), tc.assignedSkillpoints().clone()));
-        }
     }
 
     private JMHEntry() { }
@@ -178,7 +147,6 @@ public final class JMHEntry {
         if (cli.getIncludes().isEmpty()) {
             builder.include(FullEquipBenchmark.class.getName());
             builder.include(OneByOneBenchmark.class.getName());
-            builder.include(ServerSimBenchmark.class.getName());
         }
 
         // Same for the algorithm parameter: defer to CLI when provided.
@@ -194,48 +162,25 @@ public final class JMHEntry {
     }
 
     /**
-     * Materialize a player for the named build using the given algorithm entry's
-     * player-builder factory.
+     * Retrieves a registered build with the provided identifier
+     *
+     * @param id the build indetifier
+     * @return the resulting factory
      */
-    public static IPlayer build(String id, AlgorithmRegistry.Entry entry) {
-        BuildSpec spec = BUILD_REGISTRY.get(id);
+    public static BuildFactory build(String id) {
+        BuildFactory spec = BUILD_REGISTRY.get(id);
         if (spec == null) {
             throw new IllegalArgumentException("Unknown build id: " + id);
         }
-        @SuppressWarnings({"rawtypes", "unchecked"})
-        IPlayerBuilder builder = entry.builder();
-        spec.apply(builder);
-        return (IPlayer) builder.build();
-    }
 
-    /** Look up a registered build spec by id (read-only access). */
-    public static BuildSpec spec(String id) {
-        BuildSpec spec = BUILD_REGISTRY.get(id);
-        if (spec == null) {
-            throw new IllegalArgumentException("Unknown build id: " + id);
-        }
         return spec;
-    }
-
-    /** Read-only view of all registered builds. */
-    public static Map<String, BuildSpec> registry() {
-        return Collections.unmodifiableMap(BUILD_REGISTRY);
     }
 
     /**
      * Register a new build that benchmarks can address by id.
      */
-    public static void register(String id, BuildSpec spec) {
+    public static void register(String id, BuildFactory spec) {
         BUILD_REGISTRY.put(id, spec);
-    }
-
-    private static IEquipment[] cloneEquipment(SyntheticEquipment[] src) {
-        IEquipment[] out = new IEquipment[src.length];
-        for (int i = 0; i < src.length; i++) {
-            SyntheticEquipment e = src[i];
-            out[i] = new SyntheticEquipment(e.requirements().clone(), e.bonuses().clone(), e.type());
-        }
-        return out;
     }
 
 }

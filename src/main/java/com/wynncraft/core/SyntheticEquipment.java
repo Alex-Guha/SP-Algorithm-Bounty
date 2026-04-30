@@ -7,39 +7,43 @@ import com.wynncraft.enums.SkillPoint;
 
 import java.util.Arrays;
 
-/**
- * In-memory {@link IEquipment} for synthetic test cases that have no
- * real-item analog. Stores raw requirement/bonus arrays in
- * {@link SkillPoint} ordinal order.
- */
 public final class SyntheticEquipment implements IEquipment {
 
     private static final SkillPoint[] SKILL_POINTS = SkillPoint.values();
 
+    private final EquipmentType type;
     private final int[] requirements;
     private final int[] bonuses;
-    private final EquipmentType type;
     private final boolean hasNegativeBonus;
 
-    public SyntheticEquipment(int[] requirements, int[] bonuses) {
-        this(requirements, bonuses, EquipmentType.ARMOUR);
+    /**
+     * Creates a new instance of a synthetic equipment with the provided values
+     *
+     * @param type the equipment type
+     * @param requirements the equipment requirements
+     * @param bonuses the equipment bonuses
+     * @return the resulting equipment
+     */
+    public static SyntheticEquipment of(EquipmentType type, int[] requirements, int[] bonuses) {
+        return new SyntheticEquipment(type, requirements, bonuses);
     }
 
-    public SyntheticEquipment(int[] requirements, int[] bonuses, EquipmentType type) {
-        if (requirements.length != SKILL_POINTS.length) {
-            throw new IllegalArgumentException("requirements must have length " + SKILL_POINTS.length);
-        }
-        if (bonuses.length != SKILL_POINTS.length) {
-            throw new IllegalArgumentException("bonuses must have length " + SKILL_POINTS.length);
-        }
+    /**
+     * Creates a new instance of a synthetic equipment with the provided values
+     *
+     * @param requirements the equipment requirements
+     * @param bonuses the equipment bonuses
+     * @return the resulting equipment
+     */
+    public static SyntheticEquipment of(int[] requirements, int[] bonuses) {
+        return new SyntheticEquipment(EquipmentType.ARMOUR, requirements, bonuses);
+    }
+
+    private SyntheticEquipment(EquipmentType type, int[] requirements, int[] bonuses) {
+        this.type = type;
         this.requirements = requirements;
         this.bonuses = bonuses;
-        this.type = type;
-        boolean negative = false;
-        for (int b : bonuses) {
-            if (b < 0) { negative = true; break; }
-        }
-        this.hasNegativeBonus = negative;
+        this.hasNegativeBonus = checkNegativeBonus(bonuses);
     }
 
     @Override
@@ -64,17 +68,22 @@ public final class SyntheticEquipment implements IEquipment {
 
     @Override
     public boolean canEquip(IPlayer player) {
-        for (int i = 0; i < SKILL_POINTS.length; i++) {
-            if (requirements[i] != 0 && player.total(SKILL_POINTS[i]) < requirements[i]) {
-                return false;
+        // Not using an enhanced for here to save allocations!
+        for (int i = 0; i < requirements.length; i++) {
+            int requirement = requirements[i];
+            if (requirement <= 0 || player.total(SKILL_POINTS[i]) >= requirement) {
+                continue;
             }
+
+            return false;
         }
+
         return true;
     }
 
     @Override
     public String toString() {
-        return "SyntheticEquipment{reqs=" + Arrays.toString(requirements)
-            + ", bonuses=" + Arrays.toString(bonuses) + "}";
+        return String.format("%s (req: %s) (bonus: %s)", "Synthetic", Arrays.toString(requirements), Arrays.toString(bonuses));
     }
+
 }
