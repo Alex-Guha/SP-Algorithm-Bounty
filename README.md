@@ -80,7 +80,7 @@ Tag-based selection (`@Tag` on each test class):
 ./gradlew test -Palgo='WynnSolver V1' -Pcases=curated
 ```
 
-### Benchmark structuref
+### Benchmark structure
 
 JMH lives in `src/jmh/java/com/wynncraft/`:
 - `JMHEntry` — holds `BUILD_REGISTRY: Map<String, BuildFactory>`. Registers six canonical builds (two sanity + four archetypes from Sugo's forum thread).
