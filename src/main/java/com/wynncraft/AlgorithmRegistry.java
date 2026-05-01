@@ -61,6 +61,8 @@ public class AlgorithmRegistry {
         register(new PrunedMaskAlgorithm(), WynnPlayer.Builder::new);
         register(new PrunedMaskV2Algorithm(), WynnPlayer.Builder::new);
         register(new StarvingGoblinAlgorithm(), StarvingPlayer.Builder::new);
+        register(new com.wynncraft.algorithms.WynnSolverV35Algorithm(), com.wynncraft.algorithms.WynnSolverPlayer.Builder::new);
+        register(new com.wynncraft.algorithms.WynnSolverV45Algorithm(), com.wynncraft.algorithms.WynnSolverPlayer.Builder::new);
     }
 
     /**
